@@ -57,7 +57,7 @@ app.get('/users', (req, res) => {
     console.log(req.headers)
     const user = checkUser(req)
     if (user) {
-        user.password = true
+        delete user.password 
         res.send(user)
     }
     res.status(401).send({error: 'You must provide an Authorization header'})
@@ -127,6 +127,15 @@ app.get('/notify', (req, res) => {
         client.send(new Date().toTimeString());
     });
     res.send('done')
+})
+
+app.get('/', (req, res) => {
+    const output = `GET /messages : <b>get all of the messages</b><br/>
+                    POST /messages : params: {content, type, date, image?} : <b>Add a new message</b><br/>
+                    GET /messages/{id} : <b>get a specific message</b><br/>
+                    POST /user : params: {login, password, avatar} : <b>Add an user</b><br/>
+                    POST /login : params: {login, password} : <b>Get an access token</b><br/>`
+    res.send(output)
 })
 
 const server = app.listen(port, () => console.log('MessageBoard server listening on port ' + port))
