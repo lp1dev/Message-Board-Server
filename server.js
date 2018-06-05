@@ -16,16 +16,20 @@ app.use(function(req, res, next) {
     next();
 })
 
-app.use(bodyParser.json())
+app.use(bodyParser.json({limit: '50mb'}))
 
 function checkUser(req) {
     const authorization = req.headers['authorization']
     if (authorization && authorization.length && authorization.split(' ').length == 2) {
         try{
-            const type, token = authorization.split(' ')
+            const [type, token] = authorization.split(' ')
             const decoded = jwt.decode(token, secret)
             console.log(decoded)
-            return decoded
+	    const filtered = users.filter(user => user.login === decoded.login)
+	    if (filtered.length) {
+		return filtered[0]
+	    }
+            return null
         }
         catch(Exception){
             console.log(exception)
@@ -80,7 +84,7 @@ app.post('/login',  (req, res) => {
                 res.status(401).send({'error': 'Invalid password'})
             }
             else {
-                const token = jwt.encode(users[i], secret);
+                const token = jwt.encode({login: users[i].login}, secret);
                 res.send({'token': 'basic '+token})
             }
         }
@@ -100,7 +104,7 @@ app.post('/messages', (req, res) => {
     let message = req.body
     const user = checkUser(req)
     if (user) {
-        message.author = user.login;
+        message.author = {login: user.login, avatar: user.avatar};
         message.id = messages.length
         messages.unshift(message)
         res.send(messages)
