@@ -102,7 +102,16 @@ app.post('/login',  (req, res) => {
 
 app.get('/messages', (req, res) => {
     console.log(req.headers)
-    res.send(messages)
+    let page = 1
+    let items = 5
+    if (req.query.page) {
+	page = Number(req.query.page)
+	if (req.query.items) {
+	    items = Number(req.query.items)
+	}
+    }
+    const filtered = messages.filter(message => message.id >= ((page - 1) * items) && message.id < (page * items))
+    res.send(filtered)
 })
 
 app.post('/messages', (req, res) => {
