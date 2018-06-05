@@ -24,9 +24,9 @@ function checkUser(req) {
         try{
             const [type, token] = authorization.split(' ')
             const decoded = jwt.decode(token, secret)
-            console.log(decoded)
 	    const filtered = users.filter(user => user.login === decoded.login)
-	    if (filtered.length) {
+	    console.log('filtered', filtered)
+	    if (filtered.length === 1) {
 		return filtered[0]
 	    }
             return null
@@ -54,8 +54,11 @@ app.post('/users', (req, res) => {
         }
     }
     if (!isFound) {
+	if (!req.body.avatar) {
+	    req.body.avatar = 'https://www.drupal.org/files/issues/default-avatar.png'
+	}
         users.push(req.body)
-        res.send({message: 'user created', id: users.length})
+        res.send({message: 'user created', id: users.length - 1})
     }
 })
 
@@ -63,8 +66,8 @@ app.get('/users', (req, res) => {
     console.log(req.headers)
     const user = checkUser(req)
     if (user) {
-        delete user.password 
-        res.send(user)
+        res.send({login: user.login, avatar: user.avatar})
+	return
     }
     res.status(401).send({error: 'You must provide an Authorization header'})
 })
@@ -77,15 +80,19 @@ app.post('/login',  (req, res) => {
     if (!body.login || !body.password) {
         const error = {'error': 'Missing password or login'};
         res.status(400).send(error)
+	return
     }
     for (let i = 0; i < users.length; i++) {
         if (users[i].login === body.login) {
+	    console.log('found user', users[i])
+	    console.log('users are', users)
             if (users[i].password !== body.password) {
                 res.status(401).send({'error': 'Invalid password'})
             }
             else {
-                const token = jwt.encode({login: users[i].login}, secret);
+                const token = jwt.encode({login: users[i].login, password: users[i].password}, secret);
                 res.send({'token': 'basic '+token})
+		return
             }
         }
     }
@@ -139,7 +146,8 @@ app.get('/', (req, res) => {
     const output = `GET /messages : <b>get all of the messages</b><br/>
                     POST /messages : params: {content, type, date, image?} : <b>Add a new message</b><br/>
                     GET /messages/{id} : <b>get a specific message</b><br/>
-                    POST /user : params: {login, password, avatar} : <b>Add an user</b><br/>
+		    GET /users : <b>get the logged user's information</b><br/>
+                    POST /users : params: {login, password, avatar} : <b>Add an user</b><br/>
                     POST /login : params: {login, password} : <b>Get an access token</b><br/>`
     res.send(output)
 })
