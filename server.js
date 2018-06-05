@@ -5,8 +5,8 @@ const bodyParser = require('body-parser')
 const jwt = require('jwt-simple')
 const SocketServer = require('ws').Server;
 //
-const port = process.env.PORT || 8080
-const secret = 'notSoSecret'
+const port = process.env.PORT || 8090
+const secret = 'notSoSecretButKindaSecretAnyway'
 const users = []
 
 app.use(function(req, res, next) {
@@ -19,15 +19,17 @@ app.use(function(req, res, next) {
 app.use(bodyParser.json())
 
 function checkUser(req) {
-    const token = req.headers['authorization']
-    if (token && token.length) {
+    const authorization = req.headers['authorization']
+    if (authorization && authorization.length && authorization.split(' ').length == 2) {
         try{
+            const type, token = authorization.split(' ')
             const decoded = jwt.decode(token, secret)
             console.log(decoded)
             return decoded
         }
         catch(Exception){
             console.log(exception)
+            return null
         }
     }
     console.log('checkUser :: No valid token provided')
@@ -79,7 +81,7 @@ app.post('/login',  (req, res) => {
             }
             else {
                 const token = jwt.encode(users[i], secret);
-                res.send({'token': token})
+                res.send({'token': 'basic '+token})
             }
         }
     }
@@ -100,7 +102,7 @@ app.post('/messages', (req, res) => {
     if (user) {
         message.author = user.login;
         message.id = messages.length
-        messages.push(message)
+        messages.unshift(message)
         res.send(messages)
         wss.clients.forEach((client) => {
             client.send(JSON.stringify({message: "Someone posted a new message!", extra: message}))
