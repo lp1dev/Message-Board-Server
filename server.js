@@ -110,7 +110,8 @@ app.get('/messages', (req, res) => {
 	    items = Number(req.query.items)
 	}
     }
-    const filtered = messages.filter(message => message.id >= ((page - 1) * items) && message.id < (page * items))
+    const reversedMessages = messages.slice().reverse()
+    const filtered = reversedMessages.filter((message, index) => index >= ((page - 1) * items) && index < (page * items))
     res.send(filtered)
 })
 
@@ -122,7 +123,7 @@ app.post('/messages', (req, res) => {
     if (user) {
         message.author = {login: user.login, avatar: user.avatar};
         message.id = messages.length
-        messages.unshift(message)
+        messages.push(message)
         res.send(messages)
         wss.clients.forEach((client) => {
             client.send(JSON.stringify({message: "Someone posted a new message!", extra: message}))
@@ -146,13 +147,13 @@ app.get('/messages/:id', (req, res) => {
 
 app.get('/notify', (req, res) => {
     wss.clients.forEach((client) => {
-        client.send(new Date().toTimeString());
+        client.send(JSON.stringify({message: "Someone posted a new message!", extra: {"author": {"login":"test"}, "content": "testMessage"}}));
     });
     res.send('done')
 })
 
 app.get('/', (req, res) => {
-    const output = `GET /messages : <b>get all of the messages</b><br/>
+    const output = `GET /messages : params: {page, items (per page)} <b>get all of the messages</b><br/>
                     POST /messages : params: {content, type, date, image?} : <b>Add a new message</b><br/>
                     GET /messages/{id} : <b>get a specific message</b><br/>
 		    GET /users : <b>get the logged user's information</b><br/>
@@ -161,7 +162,7 @@ app.get('/', (req, res) => {
     res.send(output)
 })
 
-const server = app.listen(port, () => console.log('MessageBoard server listening on port ' + port))
+const server = app.listen(port, '', () => console.log('MessageBoard server listening on port ' + port))
 
 const wss = new SocketServer({ server });
 
